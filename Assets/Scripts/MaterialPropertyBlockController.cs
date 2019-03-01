@@ -13,7 +13,7 @@ public class MaterialPropertyBlockController : MonoBehaviour
     {
         get { return _materialPropertyBlock ?? (_materialPropertyBlock = new MaterialPropertyBlock()); }
     }
-
+    
     public void SetColor(string propertyName, Color color)
     {
         MaterialPropertyBlock.SetColor(propertyName, color);
@@ -23,9 +23,17 @@ public class MaterialPropertyBlockController : MonoBehaviour
     {
         MaterialPropertyBlock.SetFloat(propertyName, value);
     }
+    public void SetInt(string propertyName, int value)
+    {
+        MaterialPropertyBlock.SetFloat(propertyName, value);
+    }
 
     public void Apply()
     {
         Renderer.SetPropertyBlock(MaterialPropertyBlock);
+    }
+    
+    void Start(){
+        
     }
 }

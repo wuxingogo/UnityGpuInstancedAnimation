@@ -5,13 +5,14 @@ using System.Linq;
 using UnityEditor;
 using UnityEngine;
 using UnityEngine.Rendering;
+using wuxingogo.tools;
 
 public class AnimatedMeshToAsset
 {
     private const int BoneMatrixRowCount = 3;
     private const int TargetFrameRate = 30;
 
-    [MenuItem("AnimatedMeshRendererGenerator/MeshToAsset")]
+    [MenuItem("Tools/AnimatedMeshRendererGenerator/MeshToAsset #4")]
     private static void Generate()
     {
         var targetObject = Selection.activeGameObject;
@@ -34,7 +35,7 @@ public class AnimatedMeshToAsset
             EditorUtility.DisplayDialog("Warning", "Selected object does not have Animator.", "OK");
             return;
         }
-
+      
         var selectionPath = Path.GetDirectoryName(AssetDatabase.GetAssetPath(targetObject));
         var skinnedMeshRenderer = skinnedMeshRenderers.First();
         var clips = animator.runtimeAnimatorController.animationClips;
@@ -50,9 +51,9 @@ public class AnimatedMeshToAsset
         var material = GenerateMaterial(targetObject, skinnedMeshRenderer, animationTexture, clips, skinnedMeshRenderer.bones.Length);
         AssetDatabase.CreateAsset(material, string.Format("{0}/AnimatedMesh/{1}_Material.asset", selectionPath, targetObject.name));
 
-        var go = GenerateMeshRendererObject(targetObject, mesh, material, clips);
+        var go = GenerateMeshRendererObject(targetObject, mesh, material, animator);
         PrefabUtility.CreatePrefab(string.Format("{0}/AnimatedMesh/{1}.prefab", selectionPath, targetObject.name), go);
-
+        
         Object.DestroyImmediate(go);
     }
 
@@ -61,6 +62,8 @@ public class AnimatedMeshToAsset
         var mesh = Object.Instantiate(smr.sharedMesh);
 
         var boneSets = smr.sharedMesh.boneWeights;
+        Debug.Log("smr.sharedMesh.boneWeights : " + smr.sharedMesh.boneWeights.Length);
+        Debug.Log("smr.sharedMesh.bindposes : " + smr.sharedMesh.bindposes.Length);
         var boneIndexes = boneSets.Select(x => new Vector4(x.boneIndex0, x.boneIndex1, x.boneIndex2, x.boneIndex3)).ToList();
         var boneWeights = boneSets.Select(x => new Vector4(x.weight0, x.weight1, x.weight2, x.weight3)).ToList();
 
@@ -72,6 +75,7 @@ public class AnimatedMeshToAsset
 
     private static Texture GenerateAnimationTexture(GameObject targetObject, IEnumerable<AnimationClip> clips, SkinnedMeshRenderer smr)
     {
+        Debug.Log("smr.bones.Count() + " + smr.bones.Count());
         var textureBoundary = GetCalculatedTextureBoundary(clips, smr.bones.Count());
 
         var texture = new Texture2D((int)textureBoundary.x, (int)textureBoundary.y, TextureFormat.RGBAHalf, false, true);
@@ -144,8 +148,9 @@ public class AnimatedMeshToAsset
         return material;
     }
 
-    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, IEnumerable<AnimationClip> clips)
+    private static GameObject GenerateMeshRendererObject(GameObject targetObject, Mesh mesh, Material material, Animator animator)
     {
+        var clips = animator.runtimeAnimatorController.animationClips;
         var go = new GameObject();
         go.name = targetObject.name;
 
@@ -168,11 +173,16 @@ public class AnimatedMeshToAsset
             var frameCount = (int)(clip.length * TargetFrameRate);
             var startFrame = currentClipFrames + 1;
             var endFrame = startFrame + frameCount - 1;
-
-            frameInformations.Add(new AnimationFrameInfo(clip.name, startFrame, endFrame, frameCount));
+            var isLoop = clip.isLooping;
+            frameInformations.Add(new AnimationFrameInfo(clip.name, startFrame, endFrame, frameCount, isLoop));
 
             currentClipFrames = endFrame;
         }
+
+        var newAnimator = go.As<CustomAnimator>();
+        newAnimator.animator = animator;
+        newAnimator.animationInstancing = animtedMeshRenderer;
+        newAnimator.GetStateFromAnimator();
 
         animtedMeshRenderer.Setup(frameInformations, properyBlockController);
 

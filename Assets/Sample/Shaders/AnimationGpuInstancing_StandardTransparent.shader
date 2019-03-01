@@ -1,4 +1,6 @@
-﻿Shader "AnimationGpuInstancing/StandardTransparent" {
+﻿// Upgrade NOTE: upgraded instancing buffer 'Props' to new syntax.
+
+Shader "AnimationGpuInstancing/StandardTransparent" {
 	Properties{
 		_Color("Color", Color) = (1,1,1,1)
 		_MainTex("Albedo (RGB)", 2D) = "white" {}
@@ -38,14 +40,19 @@
 
 		int _PixelCountPerFrame;
 
-		UNITY_INSTANCING_CBUFFER_START(Props)
+		UNITY_INSTANCING_BUFFER_START(Props)
 			UNITY_DEFINE_INSTANCED_PROP(int, _StartFrame)
+#define _StartFrame_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(int, _EndFrame)
+#define _EndFrame_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(int, _FrameCount)
+#define _FrameCount_arr Props
 			UNITY_DEFINE_INSTANCED_PROP(float, _OffsetSeconds)
+#define _OffsetSeconds_arr Props
 
 			UNITY_DEFINE_INSTANCED_PROP(fixed4, _Color)
-		UNITY_INSTANCING_CBUFFER_END
+#define _Color_arr Props
+		UNITY_INSTANCING_BUFFER_END(Props)
 		
 		float4 GetUV(int index)
 		{
@@ -82,10 +89,10 @@
 			UNITY_TRANSFER_INSTANCE_ID(v, o);
 			UNITY_INITIALIZE_OUTPUT(Input, o);
 
-			int startFrame = UNITY_ACCESS_INSTANCED_PROP(_StartFrame);
-			int endFrame = UNITY_ACCESS_INSTANCED_PROP(_EndFrame);
-			int frameCount = UNITY_ACCESS_INSTANCED_PROP(_FrameCount);
-			float offsetSeconds = UNITY_ACCESS_INSTANCED_PROP(_OffsetSeconds);
+			int startFrame = UNITY_ACCESS_INSTANCED_PROP(_StartFrame_arr, _StartFrame);
+			int endFrame = UNITY_ACCESS_INSTANCED_PROP(_EndFrame_arr, _EndFrame);
+			int frameCount = UNITY_ACCESS_INSTANCED_PROP(_FrameCount_arr, _FrameCount);
+			float offsetSeconds = UNITY_ACCESS_INSTANCED_PROP(_OffsetSeconds_arr, _OffsetSeconds);
 
 			int offsetFrame = (int)((_Time.y + offsetSeconds) * 30);
 			int currentFrame = startFrame + offsetFrame % frameCount;
@@ -114,7 +121,7 @@
 		}
 
 		void surf(Input IN, inout SurfaceOutputStandard o) {
-			fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * UNITY_ACCESS_INSTANCED_PROP(_Color);
+			fixed4 c = tex2D(_MainTex, IN.uv_MainTex) * UNITY_ACCESS_INSTANCED_PROP(_Color_arr, _Color);
 			o.Albedo = c.rgb;
 			o.Metallic = _Metallic;
 			o.Smoothness = _Glossiness;
